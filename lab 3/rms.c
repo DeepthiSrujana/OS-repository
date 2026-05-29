@@ -1,91 +1,104 @@
 #include <stdio.h>
 
-#define MAX 10
-#define INF 999999
-
-int gcd(int a, int b) {
-    if (b == 0) return a;
-    return gcd(b, a % b);
+int gcd(int a, int b)
+{
+    while(b)
+    {
+        int t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
 }
 
-
-int lcm(int a, int b) {
+int lcm(int a, int b)
+{
     return (a * b) / gcd(a, b);
 }
 
+int main()
+{
+    int n;
 
-int find_lcm(int arr[], int n) {
-    int res = arr[0];
-    for (int i = 1; i < n; i++) {
-        res = lcm(res, arr[i]);
-    }
-    return res;
-}
+    printf("Enter the number of processes:");
+    scanf("%d",&n);
 
-int main() {
-    int n, i;
-printf("1bf24cs338 deepthi \n ");
-    int burst[MAX], deadline[MAX], period[MAX];
-    int remaining[MAX];
-    int abs_deadline[MAX];
+    int burst[n], period[n], remaining[n];
 
-    printf("Enter number of processes: ");
-    scanf("%d", &n);
+    printf("Enter the CPU burst times:\n");
+    for(int i=0;i<n;i++)
+        scanf("%d",&burst[i]);
 
-    printf("Enter Burst Time, Deadline, Period:\n");
-    for (i = 0; i < n; i++) {
-        scanf("%d %d %d", &burst[i], &deadline[i], &period[i]);
+    printf("Enter the time periods:\n");
+    for(int i=0;i<n;i++)
+        scanf("%d",&period[i]);
+
+    int hyper = period[0];
+    for(int i=1;i<n;i++)
+        hyper = lcm(hyper, period[i]);
+
+    printf("LCM=%d\n\n",hyper);
+
+    printf("Rate Monotone Scheduling:\n");
+    printf("PID\tBurst\tPeriod\n");
+
+    for(int i=0;i<n;i++)
+    {
+        printf("%d\t%d\t%d\n",i+1,burst[i],period[i]);
         remaining[i] = 0;
-        abs_deadline[i] = INF;
     }
 
+    float util = 0;
+    for(int i=0;i<n;i++)
+        util += (float)burst[i] / period[i];
 
-    int hyper = find_lcm(period, n);
+    float bound;
+    if(n == 2)
+        bound = 0.828427;
+    else
+        bound = n * (pow(2.0,1.0/n)-1);
 
+    printf("\n%f <= %f => %s\n",
+           util,bound,
+           (util <= bound) ? "true" : "false");
 
-    printf("\nPID\tBurst\tDeadline\tPeriod\n");
-    for (i = 0; i < n; i++) {
-        printf("%d\t%d\t%d\t\t%d\n", i + 1, burst[i], deadline[i], period[i]);
-    }
+    printf("Scheduling occurs for %d ms\n\n",hyper);
 
-    printf("Scheduling occurs for %d ms\n\n", hyper);
+    int last = -2;
 
-
-    for (int time = 0; time < hyper; time++) {
-
-
-        for (i = 0; i < n; i++) {
-            if (time % period[i] == 0) {
-                remaining[i] = burst[i];
-                abs_deadline[i] = time + deadline[i];
-            }
+    for(int time=0; time<hyper; time++)
+    {
+        for(int i=0;i<n;i++)
+        {
+            if(time % period[i] == 0)
+                remaining[i] += burst[i];
         }
 
         int selected = -1;
-        int min_deadline = INF;
+        int minPeriod = 99999;
 
-
-        for (i = 0; i < n; i++) {
-            if (remaining[i] > 0) {
-                if (abs_deadline[i] < min_deadline) {
-                    min_deadline = abs_deadline[i];
-                    selected = i;
-                }
+        for(int i=0;i<n;i++)
+        {
+            if(remaining[i] > 0 && period[i] < minPeriod)
+            {
+                minPeriod = period[i];
+                selected = i;
             }
         }
 
+        if(selected != last)
+        {
+            if(selected == -1)
+                printf("%dms onwards: CPU is idle\n",time);
+            else
+                printf("%dms onwards: Process %d running\n",
+                       time, selected+1);
 
-        if (selected == -1) {
-            printf("%dms: CPU is idle.\n", time);
-        } else {
-            printf("%dms: Task %d is running.\n", time, selected + 1);
+            last = selected;
+        }
 
+        if(selected != -1)
             remaining[selected]--;
-
-            if (remaining[selected] == 0) {
-                abs_deadline[selected] = INF;
-            }
-        }
     }
 
     return 0;
